@@ -33,7 +33,10 @@ fn prompt(label: &str) -> String {
     print!("{}", label);
     io::stdout().flush().unwrap();
     let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
+    if let Err(e) = io::stdin().read_line(&mut input) {
+        eprintln!("Failed to read input from stdin: {}", e);
+        std::process::exit(1);
+    }
     input.trim().to_string()
 }
 
@@ -127,15 +130,18 @@ pub async fn run_setup() -> Result<(), CdcxError> {
 
         if fix_failed {
             println!();
+            let parent = path
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."));
             if cfg!(unix) {
                 println!("  Fix permissions manually:");
-                println!("    chmod 700 {}", path.parent().unwrap().display());
+                println!("    chmod 700 {}", parent.display());
                 println!("    chmod 600 {}", path.display());
             } else {
                 println!("  Fix permissions manually:");
                 println!(
                     "    icacls \"{}\" /inheritance:r /grant:r \"%USERNAME%:(OI)(CI)(F)\"",
-                    path.parent().unwrap().display()
+                    parent.display()
                 );
                 println!(
                     "    icacls \"{}\" /inheritance:r /grant:r \"%USERNAME%:(F)\"",
